@@ -179,13 +179,16 @@ func processLogLines(logsStr string, filterPattern string, podName string) ([]ap
 		}
 
 		timestamp := parts[0]
-		message := line
+		content := parts[1]
 
-		if filterPattern != "" && !strings.Contains(message, filterPattern) {
+		if filterPattern != "" && !strings.Contains(line, filterPattern) {
 			continue
 		}
 
-		logs = append(logs, api.LogEntry{Message: message})
+		logs = append(logs, api.LogEntry{
+			Message:  content,
+			Datetime: timestamp,
+		})
 		lastTimestamp = timestamp
 	}
 
@@ -204,7 +207,7 @@ func calculatePodLimit(totalLimit, podCount int) int {
 
 func sortAndLimitLogs(logs []api.LogEntry, limit int) []api.LogEntry {
 	sort.Slice(logs, func(i, j int) bool {
-		return logs[i].Message < logs[j].Message
+		return logs[i].Datetime < logs[j].Datetime
 	})
 
 	if len(logs) > limit {

@@ -17,5 +17,6 @@ type Result struct {
 }
 
 type LogEntry struct {
-	Message string `json:"message"`
+	Message  string `json:"message"`
+	Datetime string `json:"datetime,omitempty"`
 }

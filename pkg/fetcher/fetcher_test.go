@@ -117,8 +117,10 @@ func TestFetchLogs(t *testing.T) {
 			}
 
 			if len(result.Results) > 0 {
-				if !contains(result.Results[0].Message, tc.expectedFirst) {
-					t.Errorf("First log doesn't match expected. Got: %s", result.Results[0].Message)
+				if !contains(result.Results[0].Message, tc.expectedFirst) &&
+					result.Results[0].Datetime != tc.expectedFirst {
+					t.Errorf("First log doesn't match expected. Got message: %s, datetime: %s",
+						result.Results[0].Message, result.Results[0].Datetime)
 				}
 			}
 
@@ -137,6 +139,7 @@ func TestProcessLogLines(t *testing.T) {
 		podName        string
 		expectedCount  int
 		expectedLastTS string
+		expectedMsg    string
 	}{
 		{
 			name:           "process simple logs",
@@ -145,6 +148,7 @@ func TestProcessLogLines(t *testing.T) {
 			podName:        "pod-1",
 			expectedCount:  2,
 			expectedLastTS: "2025-04-01T15:44:45.123Z",
+			expectedMsg:    "Line 1",
 		},
 		{
 			name:           "filter logs",
@@ -153,6 +157,7 @@ func TestProcessLogLines(t *testing.T) {
 			podName:        "pod-1",
 			expectedCount:  1,
 			expectedLastTS: "2025-04-01T15:44:44.534Z",
+			expectedMsg:    "Error line",
 		},
 		{
 			name:           "empty logs",
@@ -161,6 +166,7 @@ func TestProcessLogLines(t *testing.T) {
 			podName:        "pod-1",
 			expectedCount:  0,
 			expectedLastTS: "",
+			expectedMsg:    "",
 		},
 	}
 
@@ -177,6 +183,16 @@ func TestProcessLogLines(t *testing.T) {
 
 			if lastTS != tc.expectedLastTS {
 				t.Errorf("Expected last timestamp %s, got %s", tc.expectedLastTS, lastTS)
+			}
+
+			if tc.expectedCount > 0 {
+				if logs[0].Message != tc.expectedMsg {
+					t.Errorf("Expected message '%s', got '%s'", tc.expectedMsg, logs[0].Message)
+				}
+
+				if logs[0].Datetime != tc.logs[:len(tc.expectedLastTS)] {
+					t.Errorf("Expected datetime '%s', got '%s'", tc.logs[:len(tc.expectedLastTS)], logs[0].Datetime)
+				}
 			}
 		})
 	}
@@ -225,5 +241,13 @@ func TestBuildLabels(t *testing.T) {
 }
 
 func contains(s, substr string) bool {
-	return s != "" && substr != "" && s[0:len(substr)] == substr
+	if s == "" || substr == "" {
+		return false
+	}
+
+	if len(substr) > len(s) {
+		return false
+	}
+
+	return s[:len(substr)] == substr
 }
