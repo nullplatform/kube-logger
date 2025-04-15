@@ -15,25 +15,23 @@ func main() {
 	config := parseFlags()
 
 	kubeClient, err := client.NewClient()
-
 	if err != nil {
 		exitWithError("Failed to create Kubernetes client", err)
 	}
 
 	logFetcher := fetcher.New(kubeClient)
-
 	result, err := logFetcher.FetchLogs(config)
-
 	if err != nil {
 		exitWithError("Failed to fetch logs", err)
 	}
 
 	err = printResult(result)
-
 	if err != nil {
 		exitWithError("Failed to print results", err)
 	}
 
+	// Make sure output is flushed
+	os.Stdout.Sync()
 	return
 }
 
@@ -60,13 +58,15 @@ func exitWithError(message string, err error) {
 }
 
 func printResult(result *api.Result) error {
-	output, err := json.MarshalIndent(result, "", "  ")
-
+	output, err := json.Marshal(result)
 	if err != nil {
 		return fmt.Errorf("failed to marshal results to JSON: %w", err)
 	}
 
-	fmt.Println(string(output))
-
+	_, err = os.Stdout.Write(output)
+	if err != nil {
+		return fmt.Errorf("failed to write output: %w", err)
+	}
+	os.Stdout.Sync()
 	return nil
 }
